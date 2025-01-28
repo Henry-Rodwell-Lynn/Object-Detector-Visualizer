@@ -1,4 +1,5 @@
 import { FilesetResolver, ObjectDetector } from "@mediapipe/tasks-vision";
+import useAppStore from "../stores/useAppStore";
 
 // Define your color palette
 const colorPalette = {
@@ -100,7 +101,7 @@ export const initializeObjectDetector = async (
       delegate: "GPU",
     },
     runningMode: "VIDEO",
-    scoreThreshold: 0.4,
+    scoreThreshold: 0.2,
   });
 
   const video = videoRef.current;
@@ -150,6 +151,7 @@ const maxFrames = 2; // Number of frames to keep in the trail
 let frameHistory = []; // Array to store the center points for the last frames
 let frameCount = 0; // Global variable to track the frame count
 
+
 const processResults = (
   results,
   canvasCtx,
@@ -158,55 +160,59 @@ const processResults = (
   displayVideoWidth,
   displayVideoHeight
 ) => {
-  if (!canvasCtx) return;
+  const {
+    textColor,
+    textSize,
+    borderColor,
+    boxLineWidth,
+    labelVisible,
+    percentageVisible,
+    fill,
+    fillColor,
+    border,
+  } = useAppStore.getState();
 
   const scaleX = displayVideoWidth / originalVideoWidth;
   const scaleY = displayVideoHeight / originalVideoHeight;
 
-  frameCount++;
-
-  // Clear the canvas before drawing new objects
   canvasCtx.clearRect(0, 0, canvasCtx.canvas.width, canvasCtx.canvas.height);
-
-  // Array to store the center points of detected objects in the current frame
-  const currentFrameCenters = [];
 
   results.detections.forEach((detection) => {
     const bbox = detection.boundingBox;
 
     if (bbox) {
-      const label = detection.categories[0]?.categoryName.replace(" ", "_") || "Unknown"; // Replace space with underscore
-      const score = (detection.categories[0]?.score * 100).toFixed(2); // Confidence score
       const x = bbox.originX * scaleX;
       const y = bbox.originY * scaleY;
       const width = bbox.width * scaleX;
       const height = bbox.height * scaleY;
-      
-      const color = colorPalette[label.toLowerCase()] || "#000000"; // Default to black if no color found
 
-      // Set color for bounding box and text
-      canvasCtx.strokeStyle = color;
-      canvasCtx.lineWidth = 4; // Adjust line width for the box
-      canvasCtx.strokeRect(x, y, width, height);
+      // Draw bounding box fill
+      if (fill) {
+        canvasCtx.fillStyle = fillColor;
+        canvasCtx.fillRect(x, y, width, height);
+      }
 
-      // Draw the label background (black) before the text
-      const textWidth = canvasCtx.measureText(`${label} (${score}%)`).width;
-      const textHeight = 14; // Approximate height of the text
+      // Draw bounding box border
+      if (border) {
+        canvasCtx.strokeStyle = borderColor; // Use borderColor here
+        canvasCtx.lineWidth = boxLineWidth;
+        canvasCtx.strokeRect(x, y, width, height);
+      }
 
-      canvasCtx.fillStyle = "black"; // Background color for the label
-      canvasCtx.fillRect(x, y - textHeight - 4, textWidth + 6, textHeight + 4); // Background box behind text
+      // Draw text labels
+      if (labelVisible) {
+        const category = detection.categories[0]?.categoryName || "Unknown";
+        const score = percentageVisible
+          ? `(${(detection.categories[0]?.score * 100).toFixed(1)}%)`
+          : "";
 
-      // Draw the label above the bounding box
-      canvasCtx.fillStyle = "white"; // Text color (white)
-      canvasCtx.font = "14px Arial"; // Set font for the label
-      canvasCtx.fillText(`${label} (${score}%)`, x + 3, y - 5); // Display label and score with some padding
-
-      // Calculate the center of the bounding box for trails
-      const centerX = (bbox.originX + bbox.width / 2) * scaleX;
-      const centerY = (bbox.originY + bbox.height / 2) * scaleY;
-
-      // Add the current frame's center to the list
-      currentFrameCenters.push({ x: centerX, y: centerY });
+        canvasCtx.fillStyle = textColor; // Use textColor here
+        canvasCtx.font = `${textSize}px Arial`;
+        canvasCtx.fillText(`${category} ${score}`, x, y - 5);
+      }
     }
   });
 };
+
+
+

@@ -1,8 +1,8 @@
-import ObjectDetector from './ObjectDetector';
+import ObjectDetector from './components/ObjectDetector';
 
 function App() {
   return (
-    <div className="bg-black">
+    <div className="">
       <ObjectDetector />
     </div>
   );

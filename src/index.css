@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html, body {
+    font-family: 'ui-monospace', 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 14px; /* Match Leva's default font size */
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  /* Ensure all elements inherit this font */
+  * {
+    font-family: inherit;
+    box-sizing: inherit;
+  }
