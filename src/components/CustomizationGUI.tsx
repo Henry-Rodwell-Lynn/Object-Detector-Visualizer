@@ -2,8 +2,11 @@ import { useControls, folder } from "leva";
 import useAppStore from "../stores/useAppStore";
 
 const CustomizationGUI = () => {
-  // Access Zustand store actions
   const {
+    maskObjects,
+    setMaskObjects,
+    maskColor,
+    setMaskColor,
     threshold,
     setThreshold,
     fill,
@@ -24,41 +27,47 @@ const CustomizationGUI = () => {
     setTextSize,
     textColor,
     setTextColor,
+    nearestNodes,
+    setNearestNodes,
+    threeNearestNodes,
+    setThreeNearestNodes,
+    nodeColor,
+    setNodeColor,
+    nodeWidth,
+    setNodeWidth,
   } = useAppStore();
 
   useControls({
-    // Object Detector Controls
     "Object Detector Controls": folder({
       Threshold: {
         value: threshold,
         min: 0.1,
         max: 0.9,
         step: 0.1,
-        onChange: (value) => setThreshold(value),
+        onChange: setThreshold,
       },
     }),
 
-    // Bounding Box Controls
     "Bounding Box Controls": folder({
       Fill: {
         value: fill,
         label: "Fill Box",
-        onChange: (value) => setFill(value),
+        onChange: setFill,
       },
       FillColor: {
         value: fillColor,
         label: "Fill Color",
-        onChange: (color) => setFillColor(color),
+        onChange: setFillColor,
       },
       Border: {
         value: border,
         label: "Show Border",
-        onChange: (value) => setBorder(value),
+        onChange: setBorder,
       },
       BorderColor: {
         value: borderColor,
-        label: "Border Color", // New input for border color
-        onChange: (color) => setBorderColor(color),
+        label: "Border Color",
+        onChange: setBorderColor,
       },
       BoxLineWidth: {
         value: boxLineWidth,
@@ -66,21 +75,30 @@ const CustomizationGUI = () => {
         max: 20,
         step: 1,
         label: "Border Width",
-        onChange: (width) => setBoxLineWidth(width),
+        onChange: setBoxLineWidth,
+      },
+      MaskObjects: {
+        value: maskObjects,
+        label: "Mask Objects",
+        onChange: setMaskObjects,
+      },
+      MaskColor: {
+        value: maskColor,
+        label: "Mask Color",
+        onChange: setMaskColor,
       },
     }),
 
-    // Text Controls
     "Text Controls": folder({
       Label: {
         value: labelVisible,
         label: "Show Label",
-        onChange: (visible) => setLabelVisible(visible),
+        onChange: setLabelVisible,
       },
       Percentage: {
         value: percentageVisible,
         label: "Show Percentage",
-        onChange: (visible) => setPercentageVisible(visible),
+        onChange: setPercentageVisible,
       },
       TextSize: {
         value: textSize,
@@ -88,17 +106,45 @@ const CustomizationGUI = () => {
         max: 30,
         step: 1,
         label: "Label Size",
-        onChange: (size) => setTextSize(size),
+        onChange: setTextSize,
       },
       TextColor: {
         value: textColor,
         label: "Label Color",
-        onChange: (color) => setTextColor(color),
+        onChange: setTextColor,
+      },
+    }),
+
+    "Node Controls": folder({
+      "Node Types": folder({
+        NearestNodes: {
+          value: nearestNodes,
+          label: "Nearest Nodes",
+          onChange: setNearestNodes,
+        },
+        ThreeNearestNodes: {
+          value: threeNearestNodes,
+          label: "Three Nearest Nodes",
+          onChange: setThreeNearestNodes,
+        },
+      }),
+      NodeColor: {
+        value: nodeColor,
+        label: "Node Color",
+        onChange: setNodeColor,
+      },
+      NodeWidth: {
+        value: nodeWidth,
+        min: 1,
+        max: 10,
+        step: 1,
+        label: "Node Width",
+        onChange: setNodeWidth,
       },
     }),
   });
 
-  return null; // Leva automatically renders the GUI
+  return null;
 };
 
 export default CustomizationGUI;

@@ -1,30 +1,33 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import * as d3 from "d3";
 import { useDropzone } from "react-dropzone";
 import { initializeObjectDetector } from "./objectDetectorHelper";
 import useAppStore from "../stores/useAppStore";
 import CustomizationGUI from "./CustomizationGUI";
+import ControlBar from "./ControlBar";
+import InfoPanel from "./InfoPanel";
 
 function ObjectDetector() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const zoomRef = useRef<any>(null);
   const [videoFilePath, setVideoFilePath] = useState<string | null>(null);
 
-  // Access Zustand store
-  const { videoWidth, videoHeight, setVideoDimensions, videoReady, setVideoReady } =
-    useAppStore();
+  const { videoWidth, videoHeight, setVideoDimensions, videoReady, setVideoReady } = useAppStore();
 
-  // Dropzone handler
+  // Dropzone for video upload
   const onDrop = (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
-      const videoURL = URL.createObjectURL(file); // Generate blob URL for the video
-      setVideoFilePath(videoURL); // Store file path locally
-      setVideoReady(false); // Reset ready state for new video
+      const videoURL = URL.createObjectURL(file);
+      setVideoFilePath(videoURL);
+      setVideoReady(false);
     }
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: { "video/*": [] }, // Accept video files only
+    accept: { "video/*": [] },
     onDrop,
   });
 
@@ -33,38 +36,69 @@ function ObjectDetector() {
     const videoElement = videoRef.current;
 
     if (videoFilePath && videoElement) {
-      console.log("Setting video source...");
       videoElement.src = videoFilePath;
 
       videoElement.onloadedmetadata = () => {
-        console.log("Video metadata loaded:");
         const width = videoElement.videoWidth;
         const height = videoElement.videoHeight;
 
-        console.log("Width:", width, "Height:", height);
-
-        // Store video dimensions in Zustand (no re-render triggered)
         setVideoDimensions(width, height);
-
-        // Mark video as ready
         setVideoReady(true);
       };
     }
   }, [videoFilePath, setVideoDimensions, setVideoReady]);
 
-  // Initialize the object detector after video dimensions are set
+  // Initialize object detector
   useEffect(() => {
     if (videoReady && videoRef.current && canvasRef.current) {
-      console.log("Initializing Object Detector...");
       initializeObjectDetector(videoRef, canvasRef, videoFilePath!);
     }
   }, [videoReady, videoFilePath]);
 
-  return (
-    <div className="w-[100vw] h-[100vh] flex justify-center items-center">
-      
-      <CustomizationGUI />
+  // Apply d3 zoom to the container
+  useEffect(() => {
+    if (!containerRef.current) return;
 
+    const container = d3.select(containerRef.current);
+
+    const zoom = d3
+      .zoom()
+      .scaleExtent([0.1, 3]) // Allow zoom between 10% and 300%
+      .on("zoom", (event) => {
+        const transform = event.transform;
+        container.style(
+          "transform",
+          `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})`
+        );
+      });
+
+    zoomRef.current = zoom;
+    container.call(zoom);
+
+    // Set initial zoom to fit video within the viewport
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    const scale = Math.min(viewportWidth / videoWidth, viewportHeight / videoHeight);
+
+    const centerX = (viewportWidth - videoWidth * scale) / 2;
+    const centerY = (viewportHeight - videoHeight * scale) / 2;
+
+    const initialTransform = d3.zoomIdentity.translate(centerX, centerY).scale(scale);
+
+    container.call(zoom.transform, initialTransform);
+
+    return () => {
+      container.on(".zoom", null);
+    };
+  }, [videoFilePath, videoWidth, videoHeight]);
+
+  return (
+    <div className="w-[100vw] h-[100vh] flex flex-col items-center justify-center">
+      {/* Info Panel */}
+      <InfoPanel />
+
+      {/* Dropzone */}
       {!videoFilePath && (
         <div
           {...getRootProps()}
@@ -82,21 +116,18 @@ function ObjectDetector() {
           }}
         >
           <input {...getInputProps()} />
-          {isDragActive ? (
-            <p>Drop the video here...</p>
-          ) : (
-            <p>Drag & drop a video file here, or click to select a file</p>
-          )}
+          {isDragActive ? <p>Drop the video here...</p> : <p>Drag & drop a video file here, or click to select a file</p>}
         </div>
       )}
 
       {/* Video and Canvas */}
       {videoFilePath && (
         <div
+          ref={containerRef}
           className="absolute"
           style={{
-            width: videoWidth,
-            height: videoHeight,
+            width: `${videoWidth}px`,
+            height: `${videoHeight}px`,
           }}
         >
           <video
@@ -104,17 +135,26 @@ function ObjectDetector() {
             autoPlay
             muted
             loop
-            className="absolute top-0 left-0 w-full h-full"
+            className="absolute"
+            style={{
+              width: `${videoWidth}px`,
+              height: `${videoHeight}px`,
+            }}
           />
           <canvas
             ref={canvasRef}
             width={videoWidth}
             height={videoHeight}
-            className="absolute top-0 left-0"
-            style={{ backgroundColor: "transparent" }}
+            className="absolute"
           />
         </div>
       )}
+
+      {/* Customization GUI */}
+      {videoFilePath && <CustomizationGUI />}
+
+      {/* Control Bar */}
+      {videoFilePath && <ControlBar />}
     </div>
   );
 }

@@ -1,77 +1,98 @@
 import { create } from "zustand";
 
 interface AppState {
-  // Video state
+  threshold: number;
+  setThreshold: (value: number) => void;
+  fill: boolean;
+  setFill: (value: boolean) => void;
+  fillColor: string;
+  setFillColor: (value: string) => void;
+  border: boolean;
+  setBorder: (value: boolean) => void;
+  borderColor: string;
+  setBorderColor: (value: string) => void;
+  boxLineWidth: number;
+  setBoxLineWidth: (value: number) => void;
+  labelVisible: boolean;
+  setLabelVisible: (value: boolean) => void;
+  percentageVisible: boolean;
+  setPercentageVisible: (value: boolean) => void;
+  textSize: number;
+  setTextSize: (value: number) => void;
+  textColor: string;
+  setTextColor: (value: string) => void;
+
+  // 🔴 Node Visualization
+  nearestNodes: boolean;
+  setNearestNodes: (value: boolean) => void;
+  threeNearestNodes: boolean; // 🆕 New toggle for 3 nearest nodes
+  setThreeNearestNodes: (value: boolean) => void;
+  nodeColor: string;
+  setNodeColor: (value: string) => void;
+  nodeWidth: number;
+  setNodeWidth: (value: number) => void;
+
+  // 🎥 Video State
   videoWidth: number;
   videoHeight: number;
   videoReady: boolean;
   setVideoDimensions: (width: number, height: number) => void;
   setVideoReady: (ready: boolean) => void;
 
-  // Object Detector controls
-  threshold: number;
-  setThreshold: (value: number) => void;
-
-  // Bounding Box controls
-  fill: boolean;
-  fillColor: string;
-  border: boolean;
-  borderColor: string; // New border color state
-  boxLineWidth: number;
-  setFill: (value: boolean) => void;
-  setFillColor: (color: string) => void;
-  setBorder: (value: boolean) => void;
-  setBorderColor: (color: string) => void; // New setter for border color
-  setBoxLineWidth: (width: number) => void;
-
-  // Text controls
-  labelVisible: boolean;
-  percentageVisible: boolean;
-  textSize: number;
-  textColor: string;
-  setLabelVisible: (visible: boolean) => void;
-  setPercentageVisible: (visible: boolean) => void;
-  setTextSize: (size: number) => void;
-  setTextColor: (color: string) => void;
+  maskObjects: boolean;
+  setMaskObjects: (value: boolean) => void;
+  maskColor: string;
+  setMaskColor: (value: string) => void;
 }
 
 const useAppStore = create<AppState>((set) => ({
-  // Video state
+  // 🟢 Object Detector Controls
+  threshold: 0.4,
+  setThreshold: (value) => set({ threshold: value }),
+
+  // 🟡 Bounding Box Settings
+  fill: false,
+  setFill: (value) => set({ fill: value }),
+  fillColor: "#FF0000",
+  setFillColor: (value) => set({ fillColor: value }),
+  border: true,
+  setBorder: (value) => set({ border: value }),
+  borderColor: "#FFFFFF",
+  setBorderColor: (value) => set({ borderColor: value }),
+  boxLineWidth: 2,
+  setBoxLineWidth: (value) => set({ boxLineWidth: value }),
+
+  // 🔵 Text Controls
+  labelVisible: true,
+  setLabelVisible: (value) => set({ labelVisible: value }),
+  percentageVisible: false,
+  setPercentageVisible: (value) => set({ percentageVisible: value }),
+  textSize: 14,
+  setTextSize: (value) => set({ textSize: value }),
+  textColor: "#FFFFFF",
+  setTextColor: (value) => set({ textColor: value }),
+
+  // 🔴 Node Visualization
+  nearestNodes: false,
+  setNearestNodes: (value) => set({ nearestNodes: value }),
+  threeNearestNodes: false, // Default to off
+  setThreeNearestNodes: (value) => set({ threeNearestNodes: value }),
+  nodeColor: "#00FF00", // Default node connection color (Neon Green)
+  setNodeColor: (value) => set({ nodeColor: value }),
+  nodeWidth: 2, // Default node line width
+  setNodeWidth: (value) => set({ nodeWidth: value }),
+
+  // 🎥 Video State
   videoWidth: 1080,
   videoHeight: 1080,
   videoReady: false,
   setVideoDimensions: (width, height) =>
-    set({
-      videoWidth: width,
-      videoHeight: height,
-    }),
+    set({ videoWidth: width, videoHeight: height }),
   setVideoReady: (ready) => set({ videoReady: ready }),
-
-  // Object Detector controls
-  threshold: 0.4,
-  setThreshold: (value) => set({ threshold: value }),
-
-  // Bounding Box controls
-  fill: false,
-  fillColor: "#000000",
-  border: true,
-  borderColor: "#FFFFFF", // Default white for the border
-  boxLineWidth: 4,
-  setFill: (value) => set({ fill: value }),
-  setFillColor: (color) => set({ fillColor: color }),
-  setBorder: (value) => set({ border: value }),
-  setBorderColor: (color) => set({ borderColor: color }), // New setter
-  setBoxLineWidth: (width) => set({ boxLineWidth: width }),
-
-  // Text controls
-  labelVisible: true,
-  percentageVisible: true,
-  textSize: 14,
-  textColor: "#FF0000",
-  setLabelVisible: (visible) => set({ labelVisible: visible }),
-  setPercentageVisible: (visible) => set({ percentageVisible: visible }),
-  setTextSize: (size) => set({ textSize: size }),
-  setTextColor: (color) => set({ textColor: color }),
+  maskObjects: false, // Default: Masking off
+  setMaskObjects: (value) => set({ maskObjects: value }),
+  maskColor: "#000000", // Default: Black mask
+  setMaskColor: (value) => set({ maskColor: value }),
 }));
 
 export default useAppStore;
