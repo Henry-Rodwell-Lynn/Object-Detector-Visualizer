@@ -13,20 +13,17 @@ const InfoPanel = () => {
       <div className="border-t border-[#444] my-4"></div>
 
       <div className="flex flex-col gap-1 text-[#bbb]">
-        <a href="https://github.com/yourproject" target="_blank" rel="noopener noreferrer" className="text-[#4af] hover:underline">
+        <a href="https://github.com/Henry-Rodwell-Lynn/Object-Detector-Visualizer" target="_blank" rel="noopener noreferrer" className="text-[#4af] hover:underline">
           GitHub
         </a>
-        <a href="https://github.com/yourproject" target="_blank" rel="noopener noreferrer" className="text-[#4af] hover:underline">
+        <a href="https://www.are.na/henry-rodwell-lynn/channels" target="_blank" rel="noopener noreferrer" className="text-[#4af] hover:underline">
           Are.na
         </a>
-        <a href="https://yourwebsite.com" target="_blank" rel="noopener noreferrer" className="text-[#4af] hover:underline">
+        <a href="https://www.instagram.com/_henryrodwell/" target="_blank" rel="noopener noreferrer" className="text-[#4af] hover:underline">
           Instagram
         </a>
-        <a href="https://yourwebsite.com" target="_blank" rel="noopener noreferrer" className="text-[#4af] hover:underline">
+        <a href="https://henryrodwell.com/" target="_blank" rel="noopener noreferrer" className="text-[#4af] hover:underline">
           Website
-        </a>
-        <a href="https://yourwebsite.com" target="_blank" rel="noopener noreferrer" className="text-[#4af] hover:underline">
-          LinkedIn
         </a>
         <div className="border-t border-[#444] my-4"></div>
         <a className="">

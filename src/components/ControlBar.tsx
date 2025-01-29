@@ -10,16 +10,16 @@ const ControlBar = () => {
   };
 
   return (
-    <div className="fixed bottom-12 w-100% bg-[#292D39] text-gray-200 shadow-md flex items-center gap-5 px-4 py-4 rounded-lg drop-shadow-lg">
+    <div className="fixed bottom-4 w-100% bg-[#292D39] text-gray-200 shadow-md flex items-center gap-5 px-4 py-4 rounded-lg drop-shadow-lg">
       {/* Video Dimensions */}
-      <p className="text-sm font-mono">
+      <p className="text-xs font-mono">
         Video Dimensions: {videoWidth} x {videoHeight}
       </p>
 
       {/* New File Button */}
       <button
         onClick={handleNewFileClick}
-        className="bg-[#373C4B] hover:bg-[#535760] text-white text-sm px-4 py-2 rounded-md shadow"
+        className="bg-[#373C4B] hover:bg-[#535760] text-white text-xs px-4 py-2 rounded-md shadow"
       >
         New File
       </button>

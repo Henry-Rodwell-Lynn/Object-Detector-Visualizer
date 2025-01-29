@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { useDropzone } from "react-dropzone";
 import { initializeObjectDetector } from "./objectDetectorHelper";
@@ -11,7 +11,7 @@ function ObjectDetector() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const zoomRef = useRef<any>(null);
+  const zoomRef = useRef<d3.ZoomBehavior<HTMLDivElement, unknown> | null>(null);
   const [videoFilePath, setVideoFilePath] = useState<string | null>(null);
 
   const { videoWidth, videoHeight, setVideoDimensions, videoReady, setVideoReady } = useAppStore();
@@ -59,33 +59,40 @@ function ObjectDetector() {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const container = d3.select(containerRef.current);
+    const container = d3.select<HTMLDivElement, unknown>(containerRef.current);
 
     const zoom = d3
-      .zoom()
-      .scaleExtent([0.1, 3]) // Allow zoom between 10% and 300%
-      .on("zoom", (event) => {
+      .zoom<HTMLDivElement, unknown>()
+      .scaleExtent([0.1, 1.1])
+      .on("zoom", (event: d3.D3ZoomEvent<HTMLDivElement, unknown>) => {
         const transform = event.transform;
-        container.style(
-          "transform",
-          `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})`
-        );
+        requestAnimationFrame(() => {
+          container.style(
+            "transform",
+            `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})`
+          );
+        });
       });
 
     zoomRef.current = zoom;
     container.call(zoom);
 
-    // Set initial zoom to fit video within the viewport
+    // Get viewport dimensions
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
-    const scale = Math.min(viewportWidth / videoWidth, viewportHeight / videoHeight);
+    // Compute scale to fit but keep slightly smaller
+    const scale = Math.min(
+      (viewportWidth * 0.9) / videoWidth, // 90% of viewport width
+      (viewportHeight * 0.9) / videoHeight // 90% of viewport height
+    );
 
-    const centerX = (viewportWidth - videoWidth * scale) / 2;
-    const centerY = (viewportHeight - videoHeight * scale) / 2;
+    // Calculate proper center (Fix: removed invalid percentage syntax)
+    const centerX = 0.25% - (viewportWidth - videoWidth * scale) / 2;
+    const centerY = 0.25% - (viewportHeight - videoHeight * scale) / 2;
 
+    // Set initial transform
     const initialTransform = d3.zoomIdentity.translate(centerX, centerY).scale(scale);
-
     container.call(zoom.transform, initialTransform);
 
     return () => {
@@ -94,9 +101,12 @@ function ObjectDetector() {
   }, [videoFilePath, videoWidth, videoHeight]);
 
   return (
-    <div className="w-[100vw] h-[100vh] flex flex-col items-center justify-center">
-      {/* Info Panel */}
-      <InfoPanel />
+    <div className="w-[100vw] h-[100vh] flex flex-col items-center justify-center bg-gray-100 relative">
+      {/* Dotted Grid Background */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle,_rgba(0,0,0,0.15)_2px,_transparent_2px)] bg-[length:18px_18px] pointer-events-none"></div>
+
+      {/* Info Panel (only before video is uploaded) */}
+      {!videoFilePath && <InfoPanel />}
 
       {/* Dropzone */}
       {!videoFilePath && (
