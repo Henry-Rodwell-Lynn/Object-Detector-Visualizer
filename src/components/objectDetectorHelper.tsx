@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { FilesetResolver, ObjectDetector } from "@mediapipe/tasks-vision";
 import useAppStore from "../stores/useAppStore";
 
+// ✅ Define types for function parameters
 export const initializeObjectDetector = async (
-  videoRef,
-  canvasRef,
-  videoFilePath
+  videoRef: React.RefObject<HTMLVideoElement>,
+  canvasRef: React.RefObject<HTMLCanvasElement>,
+  videoFilePath: string
 ) => {
   const vision = await FilesetResolver.forVisionTasks(
     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
@@ -16,7 +18,7 @@ export const initializeObjectDetector = async (
       delegate: "GPU",
     },
     runningMode: "VIDEO",
-    scoreThreshold: useAppStore.getState().threshold, // Uses Zustand Store Threshold
+    scoreThreshold: useAppStore.getState().threshold,
   });
 
   const video = videoRef.current;
@@ -33,9 +35,14 @@ export const initializeObjectDetector = async (
 
 let lastVideoTime = -1;
 
-const renderLoop = async (objectDetector, videoRef, canvasRef) => {
+// ✅ Explicitly define function types
+const renderLoop = async (
+  objectDetector: ObjectDetector,
+  videoRef: React.RefObject<HTMLVideoElement>,
+  canvasRef: React.RefObject<HTMLCanvasElement>
+) => {
   const video = videoRef.current;
-  const canvasCtx = canvasRef.current.getContext("2d");
+  const canvasCtx = canvasRef.current?.getContext("2d");
 
   const render = async () => {
     if (!video || video.paused || video.ended || !canvasCtx) return;
@@ -43,7 +50,6 @@ const renderLoop = async (objectDetector, videoRef, canvasRef) => {
     if (video.currentTime !== lastVideoTime) {
       lastVideoTime = video.currentTime;
 
-      // Run object detection for each video frame
       const results = await objectDetector.detectForVideo(video, performance.now());
       processResults(
         results,
@@ -55,20 +61,20 @@ const renderLoop = async (objectDetector, videoRef, canvasRef) => {
       );
     }
 
-    requestAnimationFrame(render); // Continue render loop
+    requestAnimationFrame(render);
   };
 
   render();
 };
 
-// 🟢 Process Detection Results
+// ✅ Define types for function parameters
 const processResults = (
-  results,
-  canvasCtx,
-  originalVideoWidth,
-  originalVideoHeight,
-  displayVideoWidth,
-  displayVideoHeight
+  results: any,
+  canvasCtx: CanvasRenderingContext2D,
+  originalVideoWidth: number,
+  originalVideoHeight: number,
+  displayVideoWidth: number,
+  displayVideoHeight: number
 ) => {
   const {
     textColor,
@@ -100,9 +106,9 @@ const processResults = (
     canvasCtx.globalCompositeOperation = "destination-out"; // Cut out bounding boxes
   }
 
-  let boundingBoxCenters = []; // Store center points for all bounding boxes
+  const boundingBoxCenters: { centerX: number; centerY: number }[] = []; // ✅ Explicitly define array type
 
-  results.detections.forEach((detection) => {
+  results.detections.forEach((detection: any) => {
     const bbox = detection.boundingBox;
 
     if (bbox) {
@@ -153,9 +159,8 @@ const processResults = (
     canvasCtx.lineWidth = nodeWidth;
 
     boundingBoxCenters.forEach((boxA, index) => {
-      let distances = [];
+      const distances: { index: number; distance: number }[] = []; // ✅ Explicitly define array type
 
-      // Compare every box with every other box
       boundingBoxCenters.forEach((boxB, otherIndex) => {
         if (index !== otherIndex) {
           const distance = Math.sqrt(
@@ -185,26 +190,4 @@ const processResults = (
       }
     });
   }
-};
-
-
-
-
-
-// 🟢 Find the nearest bounding box center
-const findNearest = (current, centers, index) => {
-  let minDist = Infinity;
-  let nearest = null;
-
-  centers.forEach((center, i) => {
-    if (i !== index) {
-      const dist = Math.hypot(center.x - current.x, center.y - current.y);
-      if (dist < minDist) {
-        minDist = dist;
-        nearest = center;
-      }
-    }
-  });
-
-  return nearest;
 };
