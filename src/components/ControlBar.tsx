@@ -15,7 +15,7 @@ const ControlBar = () => {
       <p className="text-xs font-mono">
         Video Dimensions: {videoWidth} x {videoHeight}
       </p>
-
+      <div className="bg-white w-[2px] h-100" ></div>
       {/* New File Button */}
       <button
         onClick={handleNewFileClick}

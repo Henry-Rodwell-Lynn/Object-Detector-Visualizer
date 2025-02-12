@@ -92,6 +92,7 @@ const processResults = (
     nodeWidth,
     maskObjects,
     maskColor,
+    objectToggles, // ✅ Retrieve object visibility toggles
   } = useAppStore.getState();
 
   const scaleX = displayVideoWidth / originalVideoWidth;
@@ -109,8 +110,12 @@ const processResults = (
   const boundingBoxCenters: { centerX: number; centerY: number }[] = []; // ✅ Explicitly define array type
 
   results.detections.forEach((detection: any) => {
-    const bbox = detection.boundingBox;
+    const category = detection.categories[0]?.categoryName || "Unknown";
 
+    // 🚫 Skip detections if toggled off in UI
+    if (!objectToggles[category]) return;
+
+    const bbox = detection.boundingBox;
     if (bbox) {
       const x = bbox.originX * scaleX;
       const y = bbox.originY * scaleY;
@@ -136,7 +141,6 @@ const processResults = (
 
       // 🔤 Draw text labels
       if (labelVisible) {
-        const category = detection.categories[0]?.categoryName || "Unknown";
         const score = percentageVisible
           ? `(${(detection.categories[0]?.score * 100).toFixed(1)}%)`
           : "";
@@ -159,7 +163,7 @@ const processResults = (
     canvasCtx.lineWidth = nodeWidth;
 
     boundingBoxCenters.forEach((boxA, index) => {
-      const distances: { index: number; distance: number }[] = []; // ✅ Explicitly define array type
+      const distances: { index: number; distance: number }[] = [];
 
       boundingBoxCenters.forEach((boxB, otherIndex) => {
         if (index !== otherIndex) {
@@ -171,14 +175,11 @@ const processResults = (
         }
       });
 
-      // Sort by nearest distance
       distances.sort((a, b) => a.distance - b.distance);
-
-      // Determine how many connections to draw
       const numConnections = threeNearestNodes ? 3 : 1;
 
       for (let i = 0; i < numConnections; i++) {
-        if (distances[i]) { // ✅ Fix possible undefined index issue
+        if (distances[i]) {
           const nearestBox = boundingBoxCenters[distances[i].index];
           if (nearestBox) {
             canvasCtx.beginPath();
@@ -191,3 +192,4 @@ const processResults = (
     });
   }
 };
+

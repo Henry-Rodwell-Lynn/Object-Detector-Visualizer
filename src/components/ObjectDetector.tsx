@@ -3,7 +3,6 @@ import * as d3 from "d3";
 import { useDropzone } from "react-dropzone";
 import { initializeObjectDetector } from "./objectDetectorHelper";
 import useAppStore from "../stores/useAppStore";
-import CustomizationGUI from "./CustomizationGUI";
 import ControlBar from "./ControlBar";
 import InfoPanel from "./InfoPanel";
 
@@ -101,13 +100,13 @@ function ObjectDetector() {
   }, [videoFilePath, videoWidth, videoHeight]);
 
   return (
-    <div className="w-[100vw] h-[100vh] flex flex-col items-center justify-center bg-gray-100 relative">
+    <div className="w-[calc(100vw-275px)] h-full flex flex-col items-center justify-center bg-gray-100 relative overflow-hidden">
       {/* Dotted Grid Background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle,_rgba(0,0,0,0.15)_2px,_transparent_2px)] bg-[length:18px_18px] pointer-events-none"></div>
-
+  
       {/* Info Panel (only before video is uploaded) */}
       {!videoFilePath && <InfoPanel />}
-
+  
       {/* Dropzone */}
       {!videoFilePath && (
         <div
@@ -117,8 +116,8 @@ function ObjectDetector() {
             border: "2px dashed #000",
             padding: "20px",
             textAlign: "center",
-            width: "100vw",
-            height: "100vh",
+            width: "100%",
+            height: "100%",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
@@ -129,7 +128,7 @@ function ObjectDetector() {
           {isDragActive ? <p>Drop the video here...</p> : <p>Drag & drop a video file here, or click to select a file</p>}
         </div>
       )}
-
+  
       {/* Video and Canvas */}
       {videoFilePath && (
         <div
@@ -159,14 +158,12 @@ function ObjectDetector() {
           />
         </div>
       )}
-
-      {/* Customization GUI */}
-      {videoFilePath && <CustomizationGUI />}
-
+  
       {/* Control Bar */}
       {videoFilePath && <ControlBar />}
     </div>
   );
+  
 }
 
 export default ObjectDetector;

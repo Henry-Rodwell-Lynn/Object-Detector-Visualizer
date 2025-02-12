@@ -1,12 +1,13 @@
-import { useControls, folder } from "leva";
+import { useEffect, useRef } from "react";
+import { Pane } from "tweakpane";
 import useAppStore from "../stores/useAppStore";
 
 const CustomizationGUI = () => {
+  console.log("CustomizationGUI mounted!");
+
+  const paneRef = useRef<Pane | null>(null);
+
   const {
-    maskObjects,
-    setMaskObjects,
-    maskColor,
-    setMaskColor,
     threshold,
     setThreshold,
     fill,
@@ -19,6 +20,10 @@ const CustomizationGUI = () => {
     setBorderColor,
     boxLineWidth,
     setBoxLineWidth,
+    maskObjects,
+    setMaskObjects,
+    maskColor,
+    setMaskColor,
     labelVisible,
     setLabelVisible,
     percentageVisible,
@@ -35,114 +40,92 @@ const CustomizationGUI = () => {
     setNodeColor,
     nodeWidth,
     setNodeWidth,
+    objectToggles,
+    toggleObject,
   } = useAppStore();
 
-  useControls({
-    "Object Detector Controls": folder({
-      Threshold: {
-        value: threshold,
-        min: 0.1,
-        max: 0.9,
-        step: 0.1,
-        onChange: setThreshold,
-      },
-    }),
+  useEffect(() => {
+    if (paneRef.current) return; // Prevent multiple instances
 
-    "Bounding Box Controls": folder({
-      Fill: {
-        value: fill,
-        label: "Fill Box",
-        onChange: setFill,
-      },
-      FillColor: {
-        value: fillColor,
-        label: "Fill Color",
-        onChange: setFillColor,
-      },
-      Border: {
-        value: border,
-        label: "Show Border",
-        onChange: setBorder,
-      },
-      BorderColor: {
-        value: borderColor,
-        label: "Border Color",
-        onChange: setBorderColor,
-      },
-      BoxLineWidth: {
-        value: boxLineWidth,
-        min: 1,
-        max: 20,
-        step: 1,
-        label: "Border Width",
-        onChange: setBoxLineWidth,
-      },
-      MaskObjects: {
-        value: maskObjects,
-        label: "Mask Objects",
-        onChange: setMaskObjects,
-      },
-      MaskColor: {
-        value: maskColor,
-        label: "Mask Color",
-        onChange: setMaskColor,
-      },
-    }),
+    console.log("Tweakpane initializing...");
 
-    "Text Controls": folder({
-      Label: {
-        value: labelVisible,
-        label: "Show Label",
-        onChange: setLabelVisible,
-      },
-      Percentage: {
-        value: percentageVisible,
-        label: "Show Percentage",
-        onChange: setPercentageVisible,
-      },
-      TextSize: {
-        value: textSize,
-        min: 8,
-        max: 30,
-        step: 1,
-        label: "Label Size",
-        onChange: setTextSize,
-      },
-      TextColor: {
-        value: textColor,
-        label: "Label Color",
-        onChange: setTextColor,
-      },
-    }),
+    const pane = new Pane({
+      title: "Customization Panel",
+      expanded: true,
+    });
 
-    "Node Controls": folder({
-      "Node Types": folder({
-        NearestNodes: {
-          value: nearestNodes,
-          label: "Nearest Nodes",
-          onChange: setNearestNodes,
-        },
-        ThreeNearestNodes: {
-          value: threeNearestNodes,
-          label: "Three Nearest Nodes",
-          onChange: setThreeNearestNodes,
-        },
-      }),
-      NodeColor: {
-        value: nodeColor,
-        label: "Node Color",
-        onChange: setNodeColor,
-      },
-      NodeWidth: {
-        value: nodeWidth,
-        min: 1,
-        max: 10,
-        step: 1,
-        label: "Node Width",
-        onChange: setNodeWidth,
-      },
-    }),
-  });
+    paneRef.current = pane;
+
+    // ✅ Object Detector Controls
+    const detectorFolder = pane.addFolder({ title: "Object Detector Controls" });
+    detectorFolder.addBinding({ threshold }, "threshold", {
+      min: 0.1,
+      max: 0.9,
+      step: 0.1,
+    }).on("change", (ev) => setThreshold(ev.value));
+
+    // ✅ Bounding Box Controls (With Tabs)
+    const bboxFolder = pane.addFolder({ title: "Bounding Box Controls" });
+
+    // ✅ Tabs: "All Objects" & "Selected Objects"
+    const bboxTabs = bboxFolder.addTab({
+      pages: [
+        { title: "All Objects" },
+        { title: "Selected Objects" },
+      ],
+    });
+
+    // 📌 "All Objects" Tab - Existing Bounding Box Controls
+    const allObjects = bboxTabs.pages[0];
+    allObjects.addBinding({ fill }, "fill").on("change", (ev) => setFill(ev.value));
+    allObjects.addBinding({ fillColor }, "fillColor").on("change", (ev) => setFillColor(ev.value));
+    allObjects.addBinding({ border }, "border").on("change", (ev) => setBorder(ev.value));
+    allObjects.addBinding({ borderColor }, "borderColor").on("change", (ev) => setBorderColor(ev.value));
+    allObjects.addBinding({ boxLineWidth }, "boxLineWidth", {
+      min: 1,
+      max: 20,
+      step: 1,
+    }).on("change", (ev) => setBoxLineWidth(ev.value));
+    allObjects.addBinding({ maskObjects }, "maskObjects").on("change", (ev) => setMaskObjects(ev.value));
+    allObjects.addBinding({ maskColor }, "maskColor").on("change", (ev) => setMaskColor(ev.value));
+
+    // 📌 "Selected Objects" Tab - Object Visibility Toggles
+    const selectedObjects = bboxTabs.pages[1];
+    const objectFolder = selectedObjects.addFolder({ title: "Object Visibility" });
+
+    Object.keys(objectToggles).forEach((key) => {
+      objectFolder.addBinding({ [key]: objectToggles[key] }, key)
+        .on("change", (ev) => toggleObject(key, ev.value));
+    });
+
+    // ✅ Text Controls - Moved Outside Tabs
+    const textFolder = pane.addFolder({ title: "Text Controls" });
+    textFolder.addBinding({ labelVisible }, "labelVisible").on("change", (ev) => setLabelVisible(ev.value));
+    textFolder.addBinding({ percentageVisible }, "percentageVisible").on("change", (ev) => setPercentageVisible(ev.value));
+    textFolder.addBinding({ textSize }, "textSize", {
+      min: 8,
+      max: 30,
+      step: 1,
+    }).on("change", (ev) => setTextSize(ev.value));
+    textFolder.addBinding({ textColor }, "textColor").on("change", (ev) => setTextColor(ev.value));
+
+    // ✅ Node Visualization Folder
+    const nodeFolder = pane.addFolder({ title: "Node Visualization" });
+    nodeFolder.addBinding({ nearestNodes }, "nearestNodes").on("change", (ev) => setNearestNodes(ev.value));
+    nodeFolder.addBinding({ threeNearestNodes }, "threeNearestNodes").on("change", (ev) => setThreeNearestNodes(ev.value));
+    nodeFolder.addBinding({ nodeColor }, "nodeColor").on("change", (ev) => setNodeColor(ev.value));
+    nodeFolder.addBinding({ nodeWidth }, "nodeWidth", {
+      min: 1,
+      max: 10,
+      step: 1,
+    }).on("change", (ev) => setNodeWidth(ev.value));
+
+    console.log("Tweakpane setup complete!");
+
+    return () => {
+      console.log("CustomizationGUI unmounted but NOT disposing Tweakpane (persistent).");
+    };
+  }, []);
 
   return null;
 };
