@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import colorData from "../data/colorData"; // ✅ Import default colors
 
 interface AppState {
   threshold: number;
@@ -38,7 +39,7 @@ interface AppState {
   videoReady: boolean;
   setVideoDimensions: (width: number, height: number) => void;
   setVideoReady: (ready: boolean) => void;
-  
+
   maskObjects: boolean;
   setMaskObjects: (value: boolean) => void;
   maskColor: string;
@@ -47,25 +48,111 @@ interface AppState {
   // 🟢 Object Categories Toggles
   objectToggles: Record<string, boolean>;
   toggleObject: (key: string, value: boolean) => void;
+
+  // ✅ NEW: Per-Object Color Mode Toggle
+  usePerObjectColors: boolean;
+  setUsePerObjectColors: (value: boolean) => void;
+
+  // ✅ NEW: Per-Object Colors
+  objectColors: Record<string, string>;
+  setObjectColor: (key: string, color: string) => void;
 }
 
+// ✅ Populate initial object colors using colorData
+const initialObjectColors = Object.fromEntries(
+  Object.keys(colorData).map((key) => [key, colorData[key]])
+);
+
 const objectCategories = [
-  "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck",
-  "boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench",
-  "bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra",
-  "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee",
-  "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove",
-  "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup", 
-  "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", 
-  "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch", 
-  "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", 
-  "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", 
-  "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
+  "person",
+  "bicycle",
+  "car",
+  "motorcycle",
+  "airplane",
+  "bus",
+  "train",
+  "truck",
+  "boat",
+  "traffic light",
+  "fire hydrant",
+  "stop sign",
+  "parking meter",
+  "bench",
+  "bird",
+  "cat",
+  "dog",
+  "horse",
+  "sheep",
+  "cow",
+  "elephant",
+  "bear",
+  "zebra",
+  "giraffe",
+  "backpack",
+  "umbrella",
+  "handbag",
+  "tie",
+  "suitcase",
+  "frisbee",
+  "skis",
+  "snowboard",
+  "sports ball",
+  "kite",
+  "baseball bat",
+  "baseball glove",
+  "skateboard",
+  "surfboard",
+  "tennis racket",
+  "bottle",
+  "wine glass",
+  "cup",
+  "fork",
+  "knife",
+  "spoon",
+  "bowl",
+  "banana",
+  "apple",
+  "sandwich",
+  "orange",
+  "broccoli",
+  "carrot",
+  "hot dog",
+  "pizza",
+  "donut",
+  "cake",
+  "chair",
+  "couch",
+  "potted plant",
+  "bed",
+  "dining table",
+  "toilet",
+  "tv",
+  "laptop",
+  "mouse",
+  "remote",
+  "keyboard",
+  "cell phone",
+  "microwave",
+  "oven",
+  "toaster",
+  "sink",
+  "refrigerator",
+  "book",
+  "clock",
+  "vase",
+  "scissors",
+  "teddy bear",
+  "hair drier",
+  "toothbrush",
 ];
 
-const initialObjectToggles = Object.fromEntries(objectCategories.map((obj) => [obj, true]));
+const initialObjectToggles = Object.fromEntries(
+  objectCategories.map((obj) => [obj, true])
+);
 
 const useAppStore = create<AppState>((set) => ({
+
+  
   // 🟢 Object Detector Controls
   threshold: 0.4,
   setThreshold: (value) => set({ threshold: value }),
@@ -116,9 +203,56 @@ const useAppStore = create<AppState>((set) => ({
 
   // 🟢 Object Categories Toggles
   objectToggles: initialObjectToggles,
-  toggleObject: (key, value) => set((state) => ({
-    objectToggles: { ...state.objectToggles, [key]: value },
-  })),
+  toggleObject: (key, value) =>
+    set((state) => ({
+      objectToggles: { ...state.objectToggles, [key]: value },
+    })),
+
+  // ✅ NEW: Toggle for per-object colors
+  usePerObjectColors: false,
+  setUsePerObjectColors: (value) => set({ usePerObjectColors: value }),
+
+  // ✅ NEW: Object colors state
+  objectColors: initialObjectColors,
+
+  // ✅ NEW: Function to update object colors
+  setObjectColor: (key, color) =>
+    set((state) => ({
+      objectColors: { ...state.objectColors, [key]: color },
+    })),
+
+  // ✅ Add this function to your Zustand store (useAppStore)
+  resetSettings: () =>
+    set((state) => ({
+      threshold: 0.4,
+      fill: false,
+      fillColor: "#FF0000",
+      border: true,
+      borderColor: "#FFFFFF",
+      boxLineWidth: 2,
+      labelVisible: true,
+      percentageVisible: false,
+      textSize: 14,
+      textColor: "#FFFFFF",
+      nearestNodes: false,
+      threeNearestNodes: false,
+      nodeColor: "#00FF00",
+      nodeWidth: 2,
+      maskObjects: false,
+      maskColor: "#000000",
+      usePerObjectColors: false,
+      objectToggles: Object.fromEntries(
+        Object.keys(state.objectToggles).map((key) => [key, true])
+      ),
+      objectColors: Object.fromEntries(
+        Object.keys(state.objectColors).map((key) => [
+          key,
+          colorData[key] ?? "#FFFFFF",
+        ])
+      ),
+    })),
+
+    
 }));
 
 export default useAppStore;

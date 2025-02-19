@@ -1,11 +1,16 @@
 import { useEffect, useRef } from "react";
-import { Pane } from "tweakpane";
+import { Pane, TpChangeEvent, BindingApi } from "tweakpane";
 import useAppStore from "../stores/useAppStore";
+import colorData from "../data/colorData";
 
 const CustomizationGUI = () => {
   console.log("CustomizationGUI mounted!");
 
   const paneRef = useRef<Pane | null>(null);
+  const fillBindingRef = useRef<BindingApi | null>(null);
+  const fillColorBindingRef = useRef<BindingApi | null>(null);
+  const colorBindingRefs = useRef(new Map<string, BindingApi>());
+
 
   const {
     threshold,
@@ -42,6 +47,10 @@ const CustomizationGUI = () => {
     setNodeWidth,
     objectToggles,
     toggleObject,
+    usePerObjectColors,
+    setUsePerObjectColors,
+    objectColors, // ✅ Zustand objectColors
+    setObjectColor, // ✅ Zustand setObjectColor
   } = useAppStore();
 
   useEffect(() => {
@@ -53,77 +62,162 @@ const CustomizationGUI = () => {
       title: "Customization Panel",
       expanded: true,
     });
+    pane.element.style.width = '350px';
+    pane.element.style.paddingRight = '10px';
+    pane.element.style.marginRight = '10px';
 
     paneRef.current = pane;
 
     // ✅ Object Detector Controls
-    const detectorFolder = pane.addFolder({ title: "Object Detector Controls" });
-    detectorFolder.addBinding({ threshold }, "threshold", {
-      min: 0.1,
-      max: 0.9,
-      step: 0.1,
-    }).on("change", (ev) => setThreshold(ev.value));
+    const detectorFolder = pane.addFolder({
+      title: "Object Detector Controls",
+    });
+    detectorFolder
+      .addBinding({ threshold }, "threshold", {
+        min: 0.1,
+        max: 0.9,
+        step: 0.1,
+      })
+      .on("change", (ev) => setThreshold(ev.value));
 
     // ✅ Bounding Box Controls (With Tabs)
     const bboxFolder = pane.addFolder({ title: "Bounding Box Controls" });
 
     // ✅ Tabs: "All Objects" & "Selected Objects"
     const bboxTabs = bboxFolder.addTab({
-      pages: [
-        { title: "All Objects" },
-        { title: "Selected Objects" },
-      ],
+      pages: [{ title: "All Objects" }, { title: "Selected Objects" }],
     });
 
     // 📌 "All Objects" Tab - Existing Bounding Box Controls
     const allObjects = bboxTabs.pages[0];
-    allObjects.addBinding({ fill }, "fill").on("change", (ev) => setFill(ev.value));
-    allObjects.addBinding({ fillColor }, "fillColor").on("change", (ev) => setFillColor(ev.value));
-    allObjects.addBinding({ border }, "border").on("change", (ev) => setBorder(ev.value));
-    allObjects.addBinding({ borderColor }, "borderColor").on("change", (ev) => setBorderColor(ev.value));
-    allObjects.addBinding({ boxLineWidth }, "boxLineWidth", {
-      min: 1,
-      max: 20,
-      step: 1,
-    }).on("change", (ev) => setBoxLineWidth(ev.value));
-    allObjects.addBinding({ maskObjects }, "maskObjects").on("change", (ev) => setMaskObjects(ev.value));
-    allObjects.addBinding({ maskColor }, "maskColor").on("change", (ev) => setMaskColor(ev.value));
 
-    // 📌 "Selected Objects" Tab - Object Visibility Toggles
+    allObjects
+    .addBinding({ usePerObjectColors }, "usePerObjectColors")
+    .on("change", (ev: TpChangeEvent<boolean>) => {
+      setUsePerObjectColors(ev.value);
+  
+      if (ev.value) {
+        setFill(true); // ✅ Auto-enable fill when per-object colors are on
+      }
+  
+      // ✅ Dynamically enable/disable fill and fillColor
+      if (fillBindingRef.current) fillBindingRef.current.disabled = ev.value;
+      if (fillColorBindingRef.current) fillColorBindingRef.current.disabled = ev.value;
+  
+      // ✅ Loop through all color pickers and update disabled state
+      colorBindingRefs.current.forEach((binding) => {
+        binding.disabled = !ev.value;
+      });
+    });
+  
+  
+  
+
+    // ✅ Store references to bindings
+    fillBindingRef.current = allObjects
+      .addBinding({ fill }, "fill", {
+        disabled: usePerObjectColors,
+      })
+      .on("change", (ev) => setFill(ev.value));
+
+    fillColorBindingRef.current = allObjects
+      .addBinding({ fillColor }, "fillColor", {
+        disabled: usePerObjectColors,
+      })
+      .on("change", (ev) => setFillColor(ev.value));
+
+    allObjects
+      .addBinding({ border }, "border")
+      .on("change", (ev) => setBorder(ev.value));
+    allObjects
+      .addBinding({ borderColor }, "borderColor")
+      .on("change", (ev) => setBorderColor(ev.value));
+    allObjects
+      .addBinding({ boxLineWidth }, "boxLineWidth", {
+        min: 1,
+        max: 20,
+        step: 1,
+      })
+      .on("change", (ev) => setBoxLineWidth(ev.value));
+    allObjects
+      .addBinding({ maskObjects }, "maskObjects")
+      .on("change", (ev) => setMaskObjects(ev.value));
+    allObjects
+      .addBinding({ maskColor }, "maskColor")
+      .on("change", (ev) => setMaskColor(ev.value));
+
+    // 📌 "Selected Objects" Tab - Individual Object Toggles
     const selectedObjects = bboxTabs.pages[1];
-    const objectFolder = selectedObjects.addFolder({ title: "Object Visibility" });
 
     Object.keys(objectToggles).forEach((key) => {
-      objectFolder.addBinding({ [key]: objectToggles[key] }, key)
+      const formattedKey = key.replace(/\s+/g, "_"); // Convert "cell phone" -> "cell_phone"
+      const defaultColor = colorData[formattedKey] ?? "#FFFFFF"; 
+      const objectColors = colorData[formattedKey] || defaultColor;
+    
+      const folder = selectedObjects.addFolder({ title: key });
+    
+      folder
+        .addBinding({ [key]: objectToggles[key] }, key)
         .on("change", (ev) => toggleObject(key, ev.value));
+    
+      // ✅ Create color picker and store binding reference
+      const colorBinding = folder
+        .addBinding({ color: objectColors[key] ?? defaultColor }, "color", {
+          disabled: !usePerObjectColors,
+        })
+        .on("change", (ev) => {
+          setObjectColor(key, ev.value);
+        });
+    
+      // ✅ Store reference for dynamic updates
+      colorBindingRefs.current.set(key, colorBinding);
     });
+    
 
     // ✅ Text Controls - Moved Outside Tabs
     const textFolder = pane.addFolder({ title: "Text Controls" });
-    textFolder.addBinding({ labelVisible }, "labelVisible").on("change", (ev) => setLabelVisible(ev.value));
-    textFolder.addBinding({ percentageVisible }, "percentageVisible").on("change", (ev) => setPercentageVisible(ev.value));
-    textFolder.addBinding({ textSize }, "textSize", {
-      min: 8,
-      max: 30,
-      step: 1,
-    }).on("change", (ev) => setTextSize(ev.value));
-    textFolder.addBinding({ textColor }, "textColor").on("change", (ev) => setTextColor(ev.value));
+    textFolder
+      .addBinding({ labelVisible }, "labelVisible")
+      .on("change", (ev) => setLabelVisible(ev.value));
+    textFolder
+      .addBinding({ percentageVisible }, "percentageVisible")
+      .on("change", (ev) => setPercentageVisible(ev.value));
+    textFolder
+      .addBinding({ textSize }, "textSize", {
+        min: 8,
+        max: 30,
+        step: 1,
+      })
+      .on("change", (ev) => setTextSize(ev.value));
+    textFolder
+      .addBinding({ textColor }, "textColor")
+      .on("change", (ev) => setTextColor(ev.value));
 
     // ✅ Node Visualization Folder
     const nodeFolder = pane.addFolder({ title: "Node Visualization" });
-    nodeFolder.addBinding({ nearestNodes }, "nearestNodes").on("change", (ev) => setNearestNodes(ev.value));
-    nodeFolder.addBinding({ threeNearestNodes }, "threeNearestNodes").on("change", (ev) => setThreeNearestNodes(ev.value));
-    nodeFolder.addBinding({ nodeColor }, "nodeColor").on("change", (ev) => setNodeColor(ev.value));
-    nodeFolder.addBinding({ nodeWidth }, "nodeWidth", {
-      min: 1,
-      max: 10,
-      step: 1,
-    }).on("change", (ev) => setNodeWidth(ev.value));
+    nodeFolder
+      .addBinding({ nearestNodes }, "nearestNodes")
+      .on("change", (ev) => setNearestNodes(ev.value));
+    nodeFolder
+      .addBinding({ threeNearestNodes }, "threeNearestNodes")
+      .on("change", (ev) => setThreeNearestNodes(ev.value));
+    nodeFolder
+      .addBinding({ nodeColor }, "nodeColor")
+      .on("change", (ev) => setNodeColor(ev.value));
+    nodeFolder
+      .addBinding({ nodeWidth }, "nodeWidth", {
+        min: 1,
+        max: 10,
+        step: 1,
+      })
+      .on("change", (ev) => setNodeWidth(ev.value));
 
     console.log("Tweakpane setup complete!");
 
     return () => {
-      console.log("CustomizationGUI unmounted but NOT disposing Tweakpane (persistent).");
+      console.log(
+        "CustomizationGUI unmounted but NOT disposing Tweakpane (persistent)."
+      );
     };
   }, []);
 

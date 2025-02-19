@@ -50,7 +50,10 @@ const renderLoop = async (
     if (video.currentTime !== lastVideoTime) {
       lastVideoTime = video.currentTime;
 
-      const results = await objectDetector.detectForVideo(video, performance.now());
+      const results = await objectDetector.detectForVideo(
+        video,
+        performance.now()
+      );
       processResults(
         results,
         canvasCtx,
@@ -92,7 +95,9 @@ const processResults = (
     nodeWidth,
     maskObjects,
     maskColor,
-    objectToggles, // ✅ Retrieve object visibility toggles
+    objectToggles,
+    usePerObjectColors, // ✅ Add this
+    objectColors, // ✅ Add this
   } = useAppStore.getState();
 
   const scaleX = displayVideoWidth / originalVideoWidth;
@@ -112,10 +117,11 @@ const processResults = (
   results.detections.forEach((detection: any) => {
     const category = detection.categories[0]?.categoryName || "Unknown";
 
-    // 🚫 Skip detections if toggled off in UI
+    // ✅ Skip if the object is toggled OFF
     if (!objectToggles[category]) return;
 
     const bbox = detection.boundingBox;
+
     if (bbox) {
       const x = bbox.originX * scaleX;
       const y = bbox.originY * scaleY;
@@ -128,25 +134,30 @@ const processResults = (
 
       // 🔲 Draw bounding box fill
       if (fill) {
-        canvasCtx.fillStyle = fillColor;
+        const category = detection.categories[0]?.categoryName || "Unknown";
+        const objectColor = objectColors[category] || fillColor; // ✅ Get per-object color if enabled
+
+        canvasCtx.fillStyle = usePerObjectColors ? objectColor : fillColor;
         canvasCtx.fillRect(x, y, width, height);
       }
 
       // 🔲 Draw bounding box border
       if (border) {
-        canvasCtx.strokeStyle = borderColor;
+        canvasCtx.strokeStyle = borderColor; // ✅ Always use global border color
         canvasCtx.lineWidth = boxLineWidth;
         canvasCtx.strokeRect(x, y, width, height);
       }
 
       // 🔤 Draw text labels
       if (labelVisible) {
+        const category = detection.categories[0]?.categoryName || "Unknown";
         const score = percentageVisible
           ? `(${(detection.categories[0]?.score * 100).toFixed(1)}%)`
           : "";
 
         canvasCtx.fillStyle = textColor;
-        canvasCtx.font = `${textSize}px Arial`;
+        canvasCtx.font = `${textSize}px Menlo, Consolas, Monaco, monospace`;
+
         canvasCtx.fillText(`${category} ${score}`, x, y - 5);
       }
     }
@@ -163,7 +174,7 @@ const processResults = (
     canvasCtx.lineWidth = nodeWidth;
 
     boundingBoxCenters.forEach((boxA, index) => {
-      const distances: { index: number; distance: number }[] = [];
+      const distances: { index: number; distance: number }[] = []; // ✅ Explicitly define array type
 
       boundingBoxCenters.forEach((boxB, otherIndex) => {
         if (index !== otherIndex) {
@@ -175,11 +186,15 @@ const processResults = (
         }
       });
 
+      // Sort by nearest distance
       distances.sort((a, b) => a.distance - b.distance);
+
+      // Determine how many connections to draw
       const numConnections = threeNearestNodes ? 3 : 1;
 
       for (let i = 0; i < numConnections; i++) {
         if (distances[i]) {
+          // ✅ Fix possible undefined index issue
           const nearestBox = boundingBoxCenters[distances[i].index];
           if (nearestBox) {
             canvasCtx.beginPath();
@@ -192,4 +207,3 @@ const processResults = (
     });
   }
 };
-

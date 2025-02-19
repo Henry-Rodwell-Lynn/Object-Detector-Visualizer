@@ -13,7 +13,19 @@ function ObjectDetector() {
   const zoomRef = useRef<d3.ZoomBehavior<HTMLDivElement, unknown> | null>(null);
   const [videoFilePath, setVideoFilePath] = useState<string | null>(null);
 
-  const { videoWidth, videoHeight, setVideoDimensions, videoReady, setVideoReady } = useAppStore();
+  const {
+    videoWidth,
+    videoHeight,
+    setVideoDimensions,
+    videoReady,
+    setVideoReady,
+  } = useAppStore();
+
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(
+    null
+  );
+  const [recording, setRecording] = useState(false);
+  const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
 
   // Dropzone for video upload
   const onDrop = (acceptedFiles: File[]) => {
@@ -54,6 +66,60 @@ function ObjectDetector() {
     }
   }, [videoReady, videoFilePath]);
 
+  useEffect(() => {
+    if (videoRef.current && canvasRef.current) {
+      const videoStream = videoRef.current.captureStream();
+      const canvasStream = canvasRef.current.captureStream();
+
+      // Merge both video and canvas into a single stream
+      const combinedStream = new MediaStream([
+        ...videoStream.getTracks(),
+        ...canvasStream.getTracks(),
+      ]);
+
+      const recorder = new MediaRecorder(combinedStream, {
+        mimeType: "video/webm",
+      });
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          setRecordedChunks((prev) => [...prev, event.data]);
+        }
+      };
+
+      recorder.onstop = () => {
+        // Download the recording when stopped
+        if (recordedChunks.length > 0) {
+          const blob = new Blob(recordedChunks, { type: "video/webm" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "recorded-session.webm";
+          document.body.appendChild(a);
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      };
+
+      setMediaRecorder(recorder);
+    }
+  }, [videoFilePath]);
+
+  const handleStartRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === "inactive") {
+      setRecordedChunks([]); // Clear previous recordings
+      mediaRecorder.start();
+      setRecording(true);
+    }
+  };
+
+  const handleStopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      mediaRecorder.stop();
+      setRecording(false);
+    }
+  };
+
   // Apply d3 zoom to the container
   useEffect(() => {
     if (!containerRef.current) return;
@@ -87,11 +153,13 @@ function ObjectDetector() {
     );
 
     // Calculate proper center (Fix: removed invalid percentage syntax)
-    const centerX = 0.25% - (viewportWidth - videoWidth * scale) / 2;
-    const centerY = 0.25% - (viewportHeight - videoHeight * scale) / 2;
+    const centerX = (0.25 % -(viewportWidth - videoWidth * scale)) / 2;
+    const centerY = (0.25 % -(viewportHeight - videoHeight * scale)) / 2;
 
     // Set initial transform
-    const initialTransform = d3.zoomIdentity.translate(centerX, centerY).scale(scale);
+    const initialTransform = d3.zoomIdentity
+      .translate(centerX, centerY)
+      .scale(scale);
     container.call(zoom.transform, initialTransform);
 
     return () => {
@@ -100,13 +168,13 @@ function ObjectDetector() {
   }, [videoFilePath, videoWidth, videoHeight]);
 
   return (
-    <div className="w-[calc(100vw-275px)] h-full flex flex-col items-center justify-center bg-gray-100 relative overflow-hidden">
+    <div className="w-[calc(100vw-360px)] h-full flex flex-col items-center justify-center bg-gray-100 relative overflow-hidden">
       {/* Dotted Grid Background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle,_rgba(0,0,0,0.15)_2px,_transparent_2px)] bg-[length:18px_18px] pointer-events-none"></div>
-  
+
       {/* Info Panel (only before video is uploaded) */}
       {!videoFilePath && <InfoPanel />}
-  
+
       {/* Dropzone */}
       {!videoFilePath && (
         <div
@@ -125,10 +193,14 @@ function ObjectDetector() {
           }}
         >
           <input {...getInputProps()} />
-          {isDragActive ? <p>Drop the video here...</p> : <p>Drag & drop a video file here, or click to select a file</p>}
+          {isDragActive ? (
+            <p>Drop the video here...</p>
+          ) : (
+            <p>Drag & drop a video file here, or click to select a file</p>
+          )}
         </div>
       )}
-  
+
       {/* Video and Canvas */}
       {videoFilePath && (
         <div
@@ -158,12 +230,16 @@ function ObjectDetector() {
           />
         </div>
       )}
-  
-      {/* Control Bar */}
-      {videoFilePath && <ControlBar />}
+
+      {videoFilePath && (
+        <ControlBar
+          onStartRecording={handleStartRecording}
+          onStopRecording={handleStopRecording}
+          recording={recording}
+        />
+      )}
     </div>
   );
-  
 }
 
 export default ObjectDetector;

@@ -9,7 +9,8 @@ function App() {
         <ObjectDetector />
       </div>
 
-      <div className="overflow-scroll">
+      {/* ✅ Ensure no horizontal scroll & proper spacing */}
+      <div className="overflow-y-auto overflow-x-hidden">
         <GUIContainer />
       </div>
     </div>
